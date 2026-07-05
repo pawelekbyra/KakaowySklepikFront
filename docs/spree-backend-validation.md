@@ -211,16 +211,25 @@ Sort po `updated_at` nie jest potwierdzony dla realnego backendu.
 
 Wniosek: **search obecnego adaptera jest błędny względem realnego backendu.** Następny PR powinien zastąpić `filter[name]` parametrem `q[name_cont]` oraz ograniczyć albo potwierdzić sortowanie po `updated_at`.
 
+## Korekty adaptera po walidacji
+
+- W `lib/spree` przepięto produktowe requesty z `/api/v2/storefront/products` na `/api/v3/store/products` oraz zachowano publiczny kontrakt `Product` oczekiwany przez UI Vercel Commerce.
+- Usunięto założenia v2: `include=...`, relację `images`, nagłówek `X-Spree-Storefront-Token`, wyszukiwanie `filter[name]` oraz sortowanie po niepotwierdzonym `updated_at`.
+- Zaimplementowano założenia API v3: `expand=default_variant,variants,media,primary_media,option_types`, nagłówek `X-Spree-Api-Key`, wyszukiwanie `q[name_cont]`, defensywne sorty `price` / `-price` / `available_on` / `-available_on` oraz mapowanie obrazów z `media` / `primary_media`.
+- Dostosowano reshape produktów, wariantów, cen i obrazów do płaskiego formatu API v3 z kompatybilnościowymi fallbackami dla odpowiedzi podobnej do JSON:API.
+- Nadal wymaga uruchomionego backendu: potwierdzenie endpointu szczegółu `/api/v3/store/products/{slug-or-id}`, obsługi wszystkich expandów, hosta mediów, strukturalnych `option_values`, waluty z marketu oraz realnych pól cen.
+- Celowo nie ruszano koszyka, checkoutu, `components/cart/*`, cookie `cartId`, `lib/shopify`, Shopify envów ani backendu `sklepik`.
+
 ## Zgodność obecnego lib/spree
 
-Obecny `lib/spree` nie jest zgodny z realnym kontraktem produktowym backendu `sklepik` v3 w kluczowych punktach:
+Aktualny `lib/spree` został skorygowany względem najważniejszych różnic kontraktu API v3, ale nadal wymaga testu na uruchomionym backendzie:
 
-1. Używa `/api/v2/storefront/products`, a backend ma `/api/v3/store/products`.
-2. Używa `include`, a backend ma `expand`.
-3. Używa relacji `images`, a backend ma `media` / `primary_media`.
-4. Wysyła `X-Spree-Storefront-Token`, a backend oczekuje `X-Spree-Api-Key`.
-5. Używa `filter[name]`, a backend ma `q[name_cont]`.
-6. Zakłada sort `updated_at`, który nie został potwierdzony dla realnego backendu.
+1. Używa `/api/v3/store/products` dla listy i szczegółu produktu.
+2. Używa `expand=default_variant,variants,media,primary_media,option_types`.
+3. Mapuje obrazy z `media` / `primary_media`.
+4. Wysyła `SPREE_PUBLISHABLE_KEY` jako `X-Spree-Api-Key`.
+5. Używa `q[name_cont]` dla wyszukiwania po nazwie.
+6. Mapuje `CREATED_AT` z UI defensywnie na `available_on` / `-available_on`, zamiast wysyłać niepotwierdzony sort `updated_at`.
 
 Elementy, które mogą pozostać kierunkowo sensowne, ale wymagają ponownej walidacji na v3:
 

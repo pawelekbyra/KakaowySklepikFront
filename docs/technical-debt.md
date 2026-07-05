@@ -51,29 +51,27 @@ Co trzeba zrobić później:
 
 Warunek zamknięcia: .env.example opisuje Spree jako główny provider, a Shopify nie jest wymagany do działania MVP.
 
-### 2026-07-05 — Minimalny adapter Spree produktów ma uproszczone mapowanie
+### 2026-07-05 — Minimalny adapter Spree produktów ma zawężony zakres
 
 Status: otwarte
 
-Skrót: `lib/spree` obsługuje tylko listę produktów i szczegóły produktu. Koszyk, checkout, kolekcje/taxony, CMS, menu i rewalidacja nadal nie są zaimplementowane po stronie Spree.
+Skrót: `lib/spree` obsługuje tylko listę produktów i szczegóły produktu przez API v3 Store. Koszyk, checkout, kolekcje/taxony, CMS, menu i rewalidacja nadal nie są zaimplementowane po stronie Spree.
 
 Dlaczego to robimy: To pierwszy bezpieczny krok migracji, pozwalający sprawdzić kontrakt danych produktowych bez przepisywania UI i bez ruszania flow koszyka.
 
 Ryzyka i ograniczenia:
 
-1. Obrazy Spree mogą nie zwracać `width` i `height`; adapter używa fallbacku `600x600`.
-2. Warianty są mapowane głównie z `options_text`; jeśli backend zwróci bogatsze relacje opcji, mapowanie trzeba doprecyzować.
-3. Brak kolekcji/taxonów Spree, więc listing `/search` pobiera ogólną listę produktów.
-4. Brak koszyka Spree: `AddToCart` i akcje koszyka nadal korzystają z dotychczasowego kontraktu i będą wymagały osobnego etapu.
-5. Adapter zakłada endpointy Spree Store API `/api/v2/storefront/products` oraz `/api/v2/storefront/products/{slug}` z parametrem `include=default_variant,variants,images,option_types`.
-6. Adapter zakłada nagłówek `X-Spree-Storefront-Token` dla `SPREE_PUBLISHABLE_KEY`; jeśli backend `sklepik` używa innej nazwy nagłówka, zmiana jest izolowana w helperze requestów.
+1. Brak kolekcji/taxonów Spree, więc listing `/search` pobiera ogólną listę produktów.
+2. Brak koszyka Spree: `AddToCart` i akcje koszyka nadal korzystają z dotychczasowego kontraktu i będą wymagały osobnego etapu.
+3. Brak CMS, menu i rewalidacji po stronie Spree.
+4. Publiczne typy nadal są re-exportowane z `lib/shopify/types` jako tymczasowy most kompatybilnościowy.
 
 Co trzeba zrobić później:
 
-1. Zweryfikować endpointy i nagłówki z rzeczywistą konfiguracją `pawelekbyra/sklepik`.
-2. Rozszerzyć mapowanie wariantów o relacje option values, jeśli będą dostępne.
-3. Dodać obsługę taxonów/kolekcji.
-4. Zaimplementować osobny etap koszyka i checkoutu Spree.
+1. Zweryfikować produktowe endpointy API v3 z rzeczywistą konfiguracją `pawelekbyra/sklepik`.
+2. Dodać obsługę taxonów/kolekcji.
+3. Zaimplementować osobny etap koszyka i checkoutu Spree.
+4. Przenieść publiczne typy commerce do neutralnego miejsca, gdy zakres adaptera wyjdzie poza produkty.
 
 Warunek zamknięcia: pełny flow produktów, koszyka i checkoutu testowego działa na Spree API bez zależności od Shopify.
 
@@ -91,31 +89,26 @@ Ryzyka i ograniczenia:
 
 Warunek zamknięcia: produktowy adapter Spree ma docelowe źródło hostów obrazów, neutralne publiczne typy commerce oraz rekomendacje albo powiązane produkty oparte o Spree.
 
-### 2026-07-05 — Minimalny adapter produktów Spree jest oparty o błędny kontrakt API v2
+### 2026-07-05 — Minimalny adapter produktów Spree API v3 wymaga walidacji runtime
 
 Status: otwarte
 
-Skrót: Obecny `lib/spree` został zaimplementowany pod założenia Spree Storefront API v2, ale backendowa walidacja `sklepik#2` ustaliła, że realny backend `pawelekbyra/sklepik` używa API v3 Store dla produktów.
+Skrót: `lib/spree` został przepięty z założeń Spree Storefront API v2 na produktowy kontrakt API v3 Store, ale nie został jeszcze sprawdzony realnymi requestami do uruchomionego backendu `pawelekbyra/sklepik`.
 
-Potwierdzone ograniczenia:
+Pozostałe ograniczenia:
 
-1. Adapter używa `/api/v2/storefront/products`, a realny backend używa `/api/v3/store/products`.
-2. Adapter używa `include`, a realny backend używa `expand`.
-3. Adapter mapuje obrazy z `images`, a realny backend zwraca obrazy jako `media` / `primary_media`.
-4. Adapter wysyła `X-Spree-Storefront-Token`, a realny backend oczekuje `X-Spree-Api-Key`.
-5. Adapter używa `filter[name]`, a realny backend używa `q[name_cont]`.
-6. Sortowanie po `updated_at` nie jest potwierdzone dla realnego backendu.
-7. Fallback waluty `PLN` pozostaje założeniem frontendu, dopóki API v3 nie potwierdzi waluty w odpowiedziach produktów i wariantów.
-8. Host obrazów nie został potwierdzony względem realnych URL-i `media` / `primary_media`; `next.config.ts` dopuszcza tylko host z `SPREE_API_URL` oraz dotychczasowy Shopify CDN.
+1. Endpoint szczegółu produktu `/api/v3/store/products/{handle}` zakłada, że API v3 przyjmuje slug używany przez frontend jako `handle`; trzeba to potwierdzić na uruchomionym backendzie albo przejść na id, jeśli backend tego wymaga.
+2. Expandy `default_variant,variants,media,primary_media,option_types` są zgodne z walidacją dokumentacyjną, ale trzeba potwierdzić, że wszystkie działają w realnym backendzie.
+3. Host obrazów nie został potwierdzony względem realnych URL-i `media` / `primary_media`; `next.config.ts` dopuszcza tylko host z `SPREE_API_URL` oraz dotychczasowy Shopify CDN.
+4. Obrazy API v3 mogą nie zwracać `width` i `height`; adapter zachowuje fallback `600x600`.
+5. Fallback waluty `PLN` pozostaje awaryjnym fallbackiem frontendu, dopóki API v3/market nie potwierdzi waluty w odpowiedziach produktów i wariantów.
+6. Strukturalne `option_values` wariantów są obsługiwane defensywnie, ale ich dokładny kształt musi zostać potwierdzony na realnej odpowiedzi API v3.
 
 Co trzeba zrobić później:
 
-1. W osobnym PR kodowym przepiąć `lib/spree` na `/api/v3/store/products`.
-2. Zastąpić `include` parametrem `expand`.
-3. Zastąpić `X-Spree-Storefront-Token` nagłówkiem `X-Spree-Api-Key`.
-4. Zastąpić `filter[name]` parametrem `q[name_cont]`.
-5. Przepisać mapowanie obrazów na `media` / `primary_media` i potwierdzić hosty dla `next/image`.
-6. Potwierdzić format wariantów, cen i walut w API v3 oraz ograniczyć albo potwierdzić sort `updated_at`.
+1. Uruchomić backend `pawelekbyra/sklepik` i wykonać realne requesty listy oraz szczegółu produktu.
+2. Potwierdzić endpoint szczegółu, expandy, format wariantów, cen, walut i mediów.
+3. Po pozytywnej walidacji zaktualizować `next.config.ts` tylko o realnie potrzebny host mediów, jeśli okaże się inny niż `SPREE_API_URL`.
 
 Warunek zamknięcia: produktowy adapter `lib/spree` działa z realnym kontraktem API v3 backendu `sklepik` dla listy produktów i szczegółów produktu.
 
