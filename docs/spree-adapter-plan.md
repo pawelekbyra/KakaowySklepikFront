@@ -179,8 +179,25 @@ Przerywamy migrację na Vercel Commerce, jeśli:
 - mapowanie danych Spree jest zbyt niestabilne,
 - szybciej i bezpieczniej będzie rozwijać `pawelekbyra/sklepikFront` oparty o Spree Storefront.
 
+## Zasada aktualizacji planu
+
+- Każdy etap oznaczamy jako `niezaczęty`, `w toku`, `częściowo wykonany`, `zweryfikowany` albo `zamknięty`.
+- Nie zostawiamy nieaktualnych następnych kroków.
+- Jeśli agent zmienia kolejność etapów, musi to uzasadnić.
+
 ## Następny konkretny krok
 
-Zmapować wszystkie miejsca w kodzie, które importują `lib/shopify`.
+Zweryfikować minimalny adapter produktów Spree względem realnego backendu `pawelekbyra/sklepik`.
 
-Na tej podstawie ustalić minimalny kontrakt dla `lib/spree`.
+Zakres walidacji:
+
+- endpoint listy produktów,
+- endpoint szczegółów produktu,
+- nagłówki wymagane przez Store API,
+- format produktów,
+- format wariantów,
+- format cen,
+- format obrazów,
+- host obrazów i konfiguracja `next/image`.
+
+Nie zaczynać koszyka, dopóki produktowy adapter nie zostanie potwierdzony z realnym backendem.

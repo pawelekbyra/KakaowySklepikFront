@@ -6,6 +6,38 @@ Nie traktuj tego repo jako projektu Shopify.
 
 Celem jest sprawdzenie, czy możemy użyć jakości frontendu Vercel Commerce razem z backendem Spree z repozytorium `pawelekbyra/sklepik`.
 
+## Model pracy: ChatGPT + Codex
+
+ChatGPT pilnuje architektury, review, ryzyk, kolejności prac i promptów. Codex wykonuje małe, jasno opisane zadania kodowe albo dokumentacyjne.
+
+Codex nie rozszerza samodzielnie zakresu promptu, nie wykonuje szerokich refaktorów przy okazji i nie podejmuje ukrytych decyzji architektonicznych.
+
+Każde założenie, świadomy skrót albo rozwiązanie tymczasowe musi trafić do dokumentacji. Jeśli jest to dług techniczny, zapisujemy go w `docs/technical-debt.md`; jeśli zmienia plan adaptera, aktualizujemy `docs/spree-adapter-plan.md`.
+
+## Obowiązkowy rytm pracy agenta
+
+Każdy agent powinien:
+
+1. przeczytać `AGENTS.md`,
+2. przeczytać ważne dokumenty z `docs/`, zwłaszcza `docs/spree-adapter-plan.md`, `docs/provider-map.md`, `docs/technical-debt.md` i `docs/system-map.md`,
+3. sprawdzić aktualny kod i dokumentację zamiast zakładać, że poprzedni prompt opisuje pełny stan repo,
+4. wykonać najmniejszy sensowny krok w zakresie zadania,
+5. zaktualizować dokumentację albo dług techniczny, jeśli zmiana wprowadza założenie, skrót, ryzyko albo zmienia następny krok,
+6. w podsumowaniu PR napisać:
+   - co zmieniono,
+   - czego celowo nie zmieniono,
+   - jakie założenia przyjęto,
+   - jakie checki uruchomiono,
+   - jaki jest najlepszy następny krok.
+
+## Standard jakości
+
+Wymagamy czystej architektury, małych kroków, braku ukrytych założeń, jawnego długu technicznego i spójności dokumentacji z kodem.
+
+Nie zostawiamy nieaktualnych „następnych kroków” w dokumentacji. Jeśli agent zmienia stan projektu, musi usunąć albo poprawić wskazówki, które przestały być prawdziwe.
+
+Nie budujemy „jakoś działającego” prototypu jako stanu docelowego. Budujemy fundament pod świetny storefront oparty o Vercel Commerce UI, czysty adapter Spree i stabilny backend `pawelekbyra/sklepik`.
+
 ## Podział repozytoriów
 
 ```text
