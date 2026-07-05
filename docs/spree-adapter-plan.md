@@ -30,11 +30,11 @@ To adapter ma tłumaczyć Spree na kontrakt frontu.
 
 ## Etap 0 — rozpoznanie
 
-- [ ] Spisać wszystkie importy z `lib/shopify` w aplikacji.
-- [ ] Spisać typy używane przez komponenty produktu, listingu i koszyka.
-- [ ] Sprawdzić, które funkcje są konieczne do pierwszego renderu homepage.
-- [ ] Sprawdzić, które funkcje są konieczne do strony produktu.
-- [ ] Sprawdzić, które funkcje są konieczne do koszyka.
+- [x] Spisać wszystkie importy z `lib/shopify` w aplikacji.
+- [x] Spisać typy używane przez komponenty produktu, listingu i koszyka.
+- [x] Sprawdzić, które funkcje są konieczne do pierwszego renderu homepage/listingu.
+- [x] Sprawdzić, które funkcje są konieczne do strony produktu.
+- [x] Sprawdzić, które funkcje są konieczne do koszyka.
 
 ## Etap 1 — zmienne środowiskowe
 
@@ -43,12 +43,15 @@ Dodać obsługę:
 ```env
 SPREE_API_URL=
 SPREE_PUBLISHABLE_KEY=
-SPREE_REVALIDATION_SECRET=
 ```
+
+Aktualny minimalny krok produktowy obsługuje `SPREE_API_URL` oraz `SPREE_PUBLISHABLE_KEY`. `SPREE_REVALIDATION_SECRET` nie jest jeszcze wymagany, bo rewalidacja webhookami nie jest częścią etapu produktowego.
 
 Na tym etapie można zostawić stare zmienne Shopify, ale docelowo nie są one źródłem prawdy.
 
 ## Etap 2 — klient Spree
+
+Status: częściowo wykonany. Powstał minimalny klient Store API w `lib/spree/index.ts`, który buduje requesty do `/api/v2/storefront`, dodaje opcjonalny publishable key i zwraca czytelny błąd przy braku `SPREE_API_URL`.
 
 Utworzyć strukturę:
 
@@ -67,6 +70,8 @@ Minimalny klient powinien umieć:
 - zwrócić dane w stabilnym kształcie.
 
 ## Etap 3 — produkty
+
+Status: częściowo wykonany. `getProducts()` i `getProduct(handle)` pobierają produkty ze Spree Store API i mapują odpowiedzi JSON:API przez `lib/spree/reshape.ts` do publicznego kształtu produktu używanego przez obecne komponenty Vercel Commerce.
 
 Pierwsze funkcje:
 

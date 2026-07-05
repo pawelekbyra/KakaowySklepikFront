@@ -50,3 +50,29 @@ Co trzeba zrobić później:
 3. Po działającym adapterze usunąć niepotrzebne zmienne Shopify.
 
 Warunek zamknięcia: .env.example opisuje Spree jako główny provider, a Shopify nie jest wymagany do działania MVP.
+
+### 2026-07-05 — Minimalny adapter Spree produktów ma uproszczone mapowanie
+
+Status: otwarte
+
+Skrót: `lib/spree` obsługuje tylko listę produktów i szczegóły produktu. Koszyk, checkout, kolekcje/taxony, CMS, menu i rewalidacja nadal nie są zaimplementowane po stronie Spree.
+
+Dlaczego to robimy: To pierwszy bezpieczny krok migracji, pozwalający sprawdzić kontrakt danych produktowych bez przepisywania UI i bez ruszania flow koszyka.
+
+Ryzyka i ograniczenia:
+
+1. Obrazy Spree mogą nie zwracać `width` i `height`; adapter używa fallbacku `600x600`.
+2. Warianty są mapowane głównie z `options_text`; jeśli backend zwróci bogatsze relacje opcji, mapowanie trzeba doprecyzować.
+3. Brak kolekcji/taxonów Spree, więc listing `/search` pobiera ogólną listę produktów.
+4. Brak koszyka Spree: `AddToCart` i akcje koszyka nadal korzystają z dotychczasowego kontraktu i będą wymagały osobnego etapu.
+5. Adapter zakłada endpointy Spree Store API `/api/v2/storefront/products` oraz `/api/v2/storefront/products/{slug}` z parametrem `include=default_variant,variants,images,option_types`.
+6. Adapter zakłada nagłówek `X-Spree-Storefront-Token` dla `SPREE_PUBLISHABLE_KEY`; jeśli backend `sklepik` używa innej nazwy nagłówka, zmiana jest izolowana w helperze requestów.
+
+Co trzeba zrobić później:
+
+1. Zweryfikować endpointy i nagłówki z rzeczywistą konfiguracją `pawelekbyra/sklepik`.
+2. Rozszerzyć mapowanie wariantów o relacje option values, jeśli będą dostępne.
+3. Dodać obsługę taxonów/kolekcji.
+4. Zaimplementować osobny etap koszyka i checkoutu Spree.
+
+Warunek zamknięcia: pełny flow produktów, koszyka i checkoutu testowego działa na Spree API bez zależności od Shopify.

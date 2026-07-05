@@ -3,7 +3,7 @@ import Footer from "components/layout/footer";
 import { Gallery } from "components/product/gallery";
 import { ProductDescription } from "components/product/product-description";
 import { HIDDEN_PRODUCT_TAG } from "lib/constants";
-import { getProduct, getProductRecommendations } from "lib/shopify";
+import { getProduct, getProducts } from "lib/spree";
 import type { Image } from "lib/shopify/types";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -111,7 +111,9 @@ export default async function ProductPage(props: {
 }
 
 async function RelatedProducts({ id }: { id: string }) {
-  const relatedProducts = await getProductRecommendations(id);
+  const relatedProducts = (await getProducts({})).filter(
+    (product) => product.id !== id,
+  );
 
   if (!relatedProducts.length) return null;
 
