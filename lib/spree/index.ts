@@ -8,12 +8,14 @@ import type {
   Product,
   SpreeProductAttributes,
   SpreeResource,
-  SpreeStorefrontResponse,
+  SpreeStoreResponse,
 } from "./types";
 
 const apiUrl = process.env.SPREE_API_URL?.replace(/\/$/, "") || "";
 const publishableKey = process.env.SPREE_PUBLISHABLE_KEY;
-const storefrontPath = "/api/v2/storefront";
+const storePath = "/api/v3/store";
+const PRODUCT_EXPAND =
+  "default_variant,variants,media,primary_media,option_types";
 
 type SpreeFetchOptions = {
   path: string;
@@ -30,7 +32,7 @@ const getSpreeEndpoint = (
     );
   }
 
-  const url = new URL(`${apiUrl}${storefrontPath}${path}`);
+  const url = new URL(`${apiUrl}${storePath}${path}`);
 
   Object.entries(searchParams || {}).forEach(([key, value]) => {
     if (value) url.searchParams.set(key, value);
@@ -47,11 +49,9 @@ async function spreeFetch<T>({
 
   const result = await fetch(endpoint, {
     headers: {
-      "Content-Type": "application/vnd.api+json",
-      Accept: "application/vnd.api+json",
-      // Assumption for Spree Store API publishable keys. If the backend uses a
-      // different header, this is isolated here for easy replacement.
-      ...(publishableKey ? { "X-Spree-Storefront-Token": publishableKey } : {}),
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(publishableKey ? { "X-Spree-Api-Key": publishableKey } : {}),
     },
   });
 
@@ -68,7 +68,8 @@ async function spreeFetch<T>({
 
 const getSortParam = (sortKey?: string, reverse?: boolean) => {
   if (sortKey === "PRICE") return reverse ? "-price" : "price";
-  if (sortKey === "CREATED_AT") return reverse ? "-updated_at" : "updated_at";
+  if (sortKey === "CREATED_AT")
+    return reverse ? "-available_on" : "available_on";
   return undefined;
 };
 
@@ -82,12 +83,12 @@ export async function getProducts(args?: {
   cacheLife("days");
 
   const response = await spreeFetch<
-    SpreeStorefrontResponse<SpreeResource<SpreeProductAttributes>[]>
+    SpreeStoreResponse<SpreeResource<SpreeProductAttributes>[]>
   >({
     path: "/products",
     searchParams: {
-      include: "default_variant,variants,images,option_types",
-      "filter[name]": args?.query,
+      expand: PRODUCT_EXPAND,
+      "q[name_cont]": args?.query,
       sort: getSortParam(args?.sortKey, args?.reverse),
     },
   });
@@ -111,11 +112,11 @@ export async function getProduct(handle: string): Promise<Product | undefined> {
   cacheLife("days");
 
   const response = await spreeFetch<
-    SpreeStorefrontResponse<SpreeResource<SpreeProductAttributes>>
+    SpreeStoreResponse<SpreeResource<SpreeProductAttributes>>
   >({
     path: `/products/${encodeURIComponent(handle)}`,
     searchParams: {
-      include: "default_variant,variants,images,option_types",
+      expand: PRODUCT_EXPAND,
     },
   });
 
