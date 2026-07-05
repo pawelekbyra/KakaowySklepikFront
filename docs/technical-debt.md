@@ -90,3 +90,15 @@ Ryzyka i ograniczenia:
 3. Related products na stronie produktu używają tymczasowego fallbacku: pobierają listę produktów ze Spree, odfiltrowują aktualny produkt i ograniczają wynik do 10 pozycji. Docelowo powinny korzystać z rekomendacji, taxonów albo podobnego mechanizmu po stronie Spree.
 
 Warunek zamknięcia: produktowy adapter Spree ma docelowe źródło hostów obrazów, neutralne publiczne typy commerce oraz rekomendacje albo powiązane produkty oparte o Spree.
+
+### 2026-07-05 — Workflow agentów wymaga dyscypliny dokumentacyjnej
+
+Status: w toku
+
+Skrót: Workflow agentów był rozproszony między promptami, `AGENTS.md` i dokumentami planistycznymi, więc kolejne zadania mogły zostawiać nieaktualne następne kroki albo nieopisaną zmianę założeń.
+
+Ryzyko: Nieaktualna dokumentacja jest ryzykiem architektonicznym, bo kolejny agent może rozszerzyć zakres, zacząć koszyk przed walidacją adaptera produktów albo potraktować tymczasowy skrót jako decyzję docelową.
+
+Zasada pracy: Każdy agent musi dopisać skrót albo założenie do dokumentacji, jeśli pojawia się ono w trakcie zadania. Nie wolno zostawiać nieaktualnych następnych kroków.
+
+Warunek zamknięcia: `AGENTS.md`, `docs/agent-workflow.md`, `docs/spree-adapter-plan.md` i dokumentacja backendu `pawelekbyra/sklepik` mają spójny workflow agentów.
