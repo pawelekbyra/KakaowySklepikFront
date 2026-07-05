@@ -2,23 +2,29 @@
 
 ## Cel
 
-Celem walidacji było sprawdzenie, czy minimalny adapter `lib/spree` dla produktów może komunikować się z backendem `pawelekbyra/sklepik` bez rozszerzania zakresu na koszyk, checkout, UI albo zmiany backendu.
+Celem walidacji jest ustalenie, czy obecny minimalny adapter `lib/spree` w `KakaowySklepikFront` komunikuje się poprawnie z realnym backendem `pawelekbyra/sklepik` dla produktów.
 
-Odpowiedź na pytanie główne brzmi: **obecny `lib/spree` jest zgodny z publicznym kontraktem współczesnego Spree Storefront API dla produktów, ale nie został w pełni potwierdzony względem realnego repozytorium `pawelekbyra/sklepik`, bo backend nie był dostępny lokalnie, a próba pobrania repozytorium z GitHuba zakończyła się blokadą sieciową `CONNECT tunnel failed, response 403`.**
+Odpowiedź: **nie — obecny `lib/spree` nie pasuje do realnego kontraktu produktowego backendu `sklepik` ustalonego w backendowym PR `sklepik#2`.** Adapter jest napisany pod założenia API v2 Storefront, natomiast realny backend udostępnia produkty przez API v3 Store.
 
-Status walidacji produktowej: **częściowo wykonany — wymaga korekt lub potwierdzenia na lokalnie uruchomionym backendzie `sklepik`.**
+Status walidacji produktowej: **częściowo wykonany — wymaga korekt kodu adaptera w osobnym PR.** Ten PR tylko poprawia dokumentację i nie zmienia kodu `lib/spree`.
 
 ## Sprawdzone źródła
 
-Sprawdzono w tym repozytorium:
+Źródłem prawdy dla realnego backendu jest równoległa walidacja backendowa z PR `sklepik#2`, która sprawdziła kod repozytorium `pawelekbyra/sklepik` i ustaliła kontrakt API v3:
 
-- `AGENTS.md`,
-- `docs/agent-workflow.md`,
-- `docs/system-map.md`,
-- `docs/provider-map.md`,
+- produkty są pod `/api/v3/store/products`,
+- backend używa `expand`, nie `include`,
+- obrazy są jako `media` / `primary_media`, nie `images`,
+- publishable key idzie w `X-Spree-Api-Key`, nie `X-Spree-Storefront-Token`,
+- search używa `q[name_cont]`, nie `filter[name]`,
+- `updated_at` sort nie jest potwierdzony dla realnego backendu.
+
+Dodatkowo sprawdzono stan frontendu:
+
 - `docs/spree-adapter-plan.md`,
-- `docs/shopify-provider-audit.md`,
+- `docs/provider-map.md`,
 - `docs/technical-debt.md`,
+- `docs/system-map.md`,
 - `lib/spree/index.ts`,
 - `lib/spree/types.ts`,
 - `lib/spree/reshape.ts`,
@@ -26,48 +32,39 @@ Sprawdzono w tym repozytorium:
 - `app/search/page.tsx`,
 - `app/product/[handle]/page.tsx`.
 
-Próbowano sprawdzić backend `pawelekbyra/sklepik` przez:
-
-```bash
-git clone --depth 1 https://github.com/pawelekbyra/sklepik.git /tmp/sklepik-validation
-```
-
-Wynik: repozytorium nie zostało pobrane w tym środowisku z powodu błędu sieciowego `CONNECT tunnel failed, response 403`.
-
-Dodatkowo sprawdzono publiczną dokumentację Spree Storefront API dla aktualnego kontraktu produktów, wariantów, filtrowania, sortowania i uwierzytelniania Storefront API. To źródło potwierdza ogólny kontrakt Spree, ale **nie zastępuje walidacji realnej konfiguracji `pawelekbyra/sklepik`**.
+Poprzednia wersja tego dokumentu opierała się na publicznej dokumentacji Spree Storefront API v2. Po ustaleniach z `sklepik#2` dokumentacja frontu traktuje kontrakt backendu `sklepik` v3 jako ważniejsze źródło niż ogólne docs Spree v2.
 
 ## Endpointy produktów
 
-Obecny adapter używa:
+Obecny adapter zakłada:
 
 ```text
 GET /api/v2/storefront/products
-GET /api/v2/storefront/products/{handle}
+GET /api/v2/storefront/products/{slug}
 ```
 
-z `include`:
+oraz parametr:
 
 ```text
-default_variant,variants,images,option_types
+include=default_variant,variants,images,option_types
 ```
 
-Publiczna dokumentacja Spree Storefront API potwierdza endpoint listy produktów:
+Realny backend `sklepik` według `sklepik#2` używa:
 
 ```text
-GET /api/v2/storefront/products
+GET /api/v3/store/products
+GET /api/v3/store/products/{id-or-slug-do-potwierdzenia-w-v3}
 ```
 
-oraz endpoint szczegółów produktu:
+oraz parametru:
 
 ```text
-GET /api/v2/storefront/products/{product_slug}
+expand=...
 ```
 
-Dokumentacja Spree wskazuje też, że endpoint szczegółów może przyjąć permalink/slug albo ID produktu, a API próbuje najpierw wyszukać produkt po permalinku.
+Wniosek: **endpointy obecnego adaptera są błędne względem realnego backendu.** Następny osobny PR powinien przepiąć `lib/spree` z `/api/v2/storefront` na `/api/v3/store` i zastąpić `include` parametrem `expand` zgodnie z realnymi relacjami API v3.
 
-Relacje `default_variant`, `variants`, `option_types` i `images` są zgodne z dokumentacją Spree jako dopuszczalne relacje `include`. Dokumentacja pokazuje także relację `primary_variant`, której obecny adapter nie pobiera.
-
-Wniosek: **założenie endpointów jest zgodne z publicznym Spree Storefront API, ale wymaga potwierdzenia w realnym backendzie `sklepik` po uruchomieniu jego aplikacji.**
+Do doprecyzowania przy korekcie kodu zostaje dokładna forma endpointu szczegółów produktu w API v3: czy backend przyjmuje slug, id, czy oba identyfikatory.
 
 ## Nagłówki Store API
 
@@ -79,25 +76,17 @@ Accept: application/vnd.api+json
 X-Spree-Storefront-Token: SPREE_PUBLISHABLE_KEY
 ```
 
-Publiczna dokumentacja Spree Storefront API potwierdza `Accept: application/vnd.api+json` i `Content-Type: application/vnd.api+json` jako typ JSON:API dla Storefront API.
-
-Nie potwierdzono natomiast w aktualnej publicznej dokumentacji Spree nagłówka:
+Realny backend `sklepik` według `sklepik#2` oczekuje publishable key w nagłówku:
 
 ```text
-X-Spree-Storefront-Token
+X-Spree-Api-Key: SPREE_PUBLISHABLE_KEY
 ```
 
-Dla Storefront API dokumentacja opisuje:
-
-- publiczny dostęp do katalogu produktów bez bearer tokena,
-- `X-Spree-Order-Token` dla gościnnego koszyka i checkoutu,
-- OAuth bearer token dla zalogowanych użytkowników.
-
-Wniosek: **nagłówek `X-Spree-Storefront-Token` jest niepotwierdzonym założeniem obecnego adaptera.** Nie zmieniono go w kodzie, bo realny backend `sklepik` nie został pobrany ani uruchomiony; jeśli `sklepik` korzysta ze starszej/customowej konfiguracji publishable key, usunięcie nagłówka mogłoby być przedwczesne. Przed koszykiem trzeba sprawdzić realny backend i zdecydować, czy `SPREE_PUBLISHABLE_KEY` zostaje, zmienia nazwę, czy jest usuwany z requestów produktowych.
+Wniosek: **`X-Spree-Storefront-Token` jest błędnym nagłówkiem dla realnego backendu `sklepik`.** Kod adaptera trzeba zmienić w osobnym PR na `X-Spree-Api-Key`.
 
 ## Format produktu
 
-Obecne mapowanie w `lib/spree/reshape.ts` zakłada pola produktu:
+Obecny adapter mapuje produkt z odpowiedzi JSON:API v2 i zakłada między innymi pola:
 
 ```text
 id
@@ -115,97 +104,66 @@ meta_description
 updated_at
 ```
 
-Publiczny format Spree Storefront API potwierdza najważniejsze pola:
+Ustalenia `sklepik#2` wskazują, że realny backend działa na kontrakcie API v3 Store. To oznacza, że obecne typy `SpreeProductAttributes` i reshape napisane pod v2 wymagają ponownego sprawdzenia względem realnej odpowiedzi v3.
 
-```text
-id
-name
-description
-slug
-price
-currency
-display_price
-available
-purchasable
-in_stock
-meta_description
-updated_at
-```
+Wniosek: **nie wolno uznawać obecnego mapowania produktu za zweryfikowane.** W kolejnym PR trzeba zaktualizować typy i reshape na podstawie realnej odpowiedzi `/api/v3/store/products`.
 
-Różnice i obserwacje:
+Szczególnie do ponownego sprawdzenia w v3:
 
-- `permalink` nie jest pokazywany jako atrybut produktu w aktualnej publicznej odpowiedzi Storefront API; dokumentacja opisuje jednak endpoint `{product_slug}` jako przyjmujący permalink/slug.
-- `meta_title` nie zostało potwierdzone w przykładowej odpowiedzi publicznej dokumentacji; potwierdzone jest `meta_description` oraz `meta_keywords`.
-- Adapter poprawnie używa `slug` jako głównego `handle`, a `permalink` tylko jako fallback.
-- Adapter używa `updated_at`, a przy jego braku generuje aktualny timestamp. Ten fallback jest wygodny dla typu frontu, ale może powodować niestabilny `updatedAt` w renderowanych danych, jeśli backend faktycznie nie zwróci daty.
-
-Wniosek: **mapowanie podstawowych pól produktu jest zasadniczo zgodne z publicznym Spree API, ale `meta_title`, `permalink` i fallback `updatedAt` wymagają potwierdzenia na realnym backendzie.**
+- identyfikator i slug/handle produktu,
+- nazwa i opis,
+- pola SEO,
+- dostępność produktu,
+- pole daty aktualizacji,
+- położenie ceny i waluty,
+- relacje lub expandy potrzebne do wariantów oraz obrazów.
 
 ## Format wariantów
 
-Obecny adapter pobiera warianty z relacji:
+Obecny adapter pobiera warianty przez relacje v2:
 
 ```text
 default_variant
 variants
 ```
 
-Publiczna dokumentacja Spree potwierdza obie relacje oraz pokazuje także `primary_variant`.
-
-Format wariantu w publicznej dokumentacji obejmuje między innymi:
+oraz mapuje opcje wariantu głównie z:
 
 ```text
-id
-sku
-price
-currency
-display_price
-is_master
 options_text
-options
-purchasable
-in_stock
-backorderable
 ```
 
-Obecny adapter:
+Dla realnego backendu `sklepik` trzeba przejść na expandy API v3. `sklepik#2` nie potwierdza, że obecne relacje v2 `default_variant` / `variants` oraz `options_text` są wystarczającym kontraktem dla frontu.
 
-- mapuje `variant.id` na `ProductVariant.id`,
-- mapuje `options_text` do `selectedOptions`,
-- nie używa bogatszego pola `options`,
-- nie używa relacji `option_values`,
-- nie pobiera osobnego endpointu wariantów.
+Wniosek: **format wariantów pozostaje niezgodny albo co najmniej niepotwierdzony względem realnego API v3.** Następny PR powinien ustalić i zaimplementować mapowanie wariantów z odpowiedzi v3.
 
-Wniosek: **`variant.id` wygląda na właściwy przyszły kandydat na `merchandiseId` dla line items, bo Spree line items operują na wariantach, ale należy to potwierdzić dopiero przy walidacji endpointów koszyka.**
-
-`options_text` wystarcza jako minimalny most do UI Vercel Commerce, ale nie jest docelowym źródłem opcji. Jeśli realny backend `sklepik` ma produkty z wieloma wariantami i lokalizowanymi nazwami opcji, należy przejść na strukturalne `options` albo relacje `option_values`.
+`ProductVariant.id` nadal powinien docelowo odpowiadać identyfikatorowi wariantu przekazywanemu później do line items, ale nie wolno tego uznać za potwierdzone przed sprawdzeniem v3 cart/line items. Koszyka w tym PR nie implementujemy.
 
 ## Format cen
 
-Publiczny format Spree Storefront API pokazuje ceny jako stringi, np.:
+Obecny adapter zakłada, że cena i waluta są dostępne jako:
 
 ```text
-price: "38.99"
-currency: "USD"
-display_price: "$38.99"
+price
+currency
+display_price
 ```
 
-Obecny adapter:
+na produkcie albo wariancie w kształcie zgodnym z API v2.
 
-- akceptuje `price` jako string albo number,
-- zwraca `Money.amount` jako string,
-- bierze `currency` z wariantu albo produktu,
-- ignoruje `display_price`,
-- wylicza `priceRange` jako min/max po wariantach,
-- używa fallbacku waluty `PLN`.
+Dla realnego backendu `sklepik` należy sprawdzić format cen w API v3 Store. Ten PR nie zmienia kodu, więc fallback `PLN` pozostaje opisanym długiem technicznym, a nie potwierdzoną właściwością backendu.
 
-Wniosek: **format `price` i `currency` jest zgodny z publicznym Spree API.** `display_price` nie powinno być głównym źródłem wartości liczbowej, bo zawiera format prezentacyjny, ale może być przydatne później dla i18n/formatowania.
-
-Fallback `PLN` jest tylko założeniem projektowym dla Kakaowego Sklepiku. Nie jest potwierdzony przez backend `sklepik` w tej walidacji i pozostaje długiem technicznym do zamknięcia po sprawdzeniu realnej waluty sklepu/marketu.
+Wniosek: **format cen i walut nie jest zweryfikowany dla realnego API v3.** Kolejny PR powinien oprzeć `priceRange` na rzeczywistych polach cen wariantów z `/api/v3/store/products`.
 
 ## Format obrazów
 
-Obecny adapter obsługuje pola obrazu:
+Obecny adapter zakłada relację:
+
+```text
+images
+```
+
+oraz pola obrazu:
 
 ```text
 original_url
@@ -220,23 +178,16 @@ alt
 position
 ```
 
-Publiczna dokumentacja endpointów produktów potwierdza relację `images` i możliwość użycia parametrów:
+Realny backend `sklepik` według `sklepik#2` używa:
 
 ```text
-image_transformation[size]
-image_transformation[quality]
+media
+primary_media
 ```
 
-z atrybutem `transformed_url` dla dołączonych obrazów. W sprawdzonym kontrakcie publicznym nie potwierdzono jednoznacznie pól `width` i `height`.
+Wniosek: **obecne mapowanie obrazów przez `images` jest błędne względem realnego backendu.** Następny PR powinien zmienić expandy i reshape obrazów na `media` / `primary_media`.
 
-Obecny adapter nie obsługuje `transformed_url`. Jeżeli realny backend `sklepik` będzie zwracał tylko `transformed_url` albo będzie wymagał transformacji obrazów, adapter będzie wymagał małej korekty mapowania obrazu.
-
-Obecny `next.config.ts` dopuszcza:
-
-- `cdn.shopify.com`,
-- host wyliczony z `SPREE_API_URL`.
-
-Nie potwierdzono, czy obrazy `sklepik` są serwowane z tego samego hosta co API, czy z osobnego CDN/storage. Jeżeli backend używa osobnego hosta, trzeba dodać jawne źródło hosta obrazów do konfiguracji `next/image` zamiast zgadywać z `SPREE_API_URL`.
+Host obrazów i zgodność z `next/image` nadal wymagają sprawdzenia na realnych URL-ach zwracanych przez API v3. Obecny `next.config.ts` dopuszcza host wyliczony z `SPREE_API_URL`, ale to nie wystarczy, jeśli `media` wskazuje na osobny storage albo CDN.
 
 ## Search i sortowanie
 
@@ -250,63 +201,54 @@ sort=updated_at
 sort=-updated_at
 ```
 
-Publiczna dokumentacja Spree potwierdza:
+Realny backend `sklepik` według `sklepik#2` używa wyszukiwania:
 
-- `filter[name]` jako wyszukiwanie po nazwie z dopasowaniem częściowym,
-- sortowanie po `price`, `updated_at`, `created_at`, `available_on`, `name`, `sku`,
-- prefiks `-` dla sortowania malejącego.
+```text
+q[name_cont]
+```
 
-Wniosek: **search i sort adaptera są zgodne z publicznym Spree Storefront API.** Wymaga to nadal potwierdzenia, czy realny backend `sklepik` nie ma niestandardowego searchera albo ograniczeń konfiguracji.
+Sort po `updated_at` nie jest potwierdzony dla realnego backendu.
+
+Wniosek: **search obecnego adaptera jest błędny względem realnego backendu.** Następny PR powinien zastąpić `filter[name]` parametrem `q[name_cont]` oraz ograniczyć albo potwierdzić sortowanie po `updated_at`.
 
 ## Zgodność obecnego lib/spree
 
-Elementy zgodne z publicznym kontraktem Spree Storefront API:
+Obecny `lib/spree` nie jest zgodny z realnym kontraktem produktowym backendu `sklepik` v3 w kluczowych punktach:
 
-1. `GET /api/v2/storefront/products`.
-2. `GET /api/v2/storefront/products/{slug}`.
-3. `include=default_variant,variants,images,option_types`.
-4. Podstawowe pola produktu: `name`, `description`, `slug`, `price`, `currency`, `display_price`, `available`, `purchasable`, `in_stock`, `meta_description`, `updated_at`.
-5. Relacje wariantów `default_variant` i `variants`.
-6. `variant.id` jako identyfikator wariantu.
-7. `options_text` jako minimalne źródło `selectedOptions`.
-8. Ceny jako stringi z osobnym `currency`.
-9. `filter[name]` oraz sortowanie `price`/`updated_at` z prefiksem `-`.
+1. Używa `/api/v2/storefront/products`, a backend ma `/api/v3/store/products`.
+2. Używa `include`, a backend ma `expand`.
+3. Używa relacji `images`, a backend ma `media` / `primary_media`.
+4. Wysyła `X-Spree-Storefront-Token`, a backend oczekuje `X-Spree-Api-Key`.
+5. Używa `filter[name]`, a backend ma `q[name_cont]`.
+6. Zakłada sort `updated_at`, który nie został potwierdzony dla realnego backendu.
 
-Elementy niepotwierdzone względem realnego backendu `sklepik`:
+Elementy, które mogą pozostać kierunkowo sensowne, ale wymagają ponownej walidacji na v3:
 
-1. Dostępność repozytorium i jego realna wersja Spree w tym środowisku.
-2. Czy produkty wymagają publishable key.
-3. Czy `X-Spree-Storefront-Token` jest poprawnym nagłówkiem.
-4. Czy backend zwraca `meta_title`.
-5. Czy backend zwraca `permalink` jako atrybut, czy tylko `slug`.
-6. Czy backend zwraca obrazy z `original_url`/`large_url`/`product_url`, czy raczej `transformed_url`.
-7. Czy host obrazów jest taki sam jak host API.
-8. Czy waluta backendu to zawsze `PLN`.
-9. Czy realny katalog ma warianty wymagające strukturalnego mapowania opcji, nie tylko `options_text`.
+- publiczny kształt zwracany do komponentów Vercel Commerce,
+- mapowanie produktu na `handle`, `title`, `description`, `availableForSale`, `seo`,
+- mapowanie wariantu na `ProductVariant.id`, `selectedOptions` i `price`,
+- wyliczanie `priceRange` po wariantach,
+- konfiguracja `next/image` dla hostów obrazów.
 
 ## Różnice i ryzyka
 
-1. **Nagłówek publishable key jest największą niepewnością.** Aktualna dokumentacja Spree nie potwierdza `X-Spree-Storefront-Token` dla publicznego katalogu produktów.
-2. **Brak realnej walidacji backendu.** Nie można uczciwie oznaczyć adaptera jako `zweryfikowany`, dopóki `sklepik` nie zostanie uruchomiony albo przynajmniej sprawdzony lokalnie z kodu backendu.
-3. **Obrazy mogą wymagać korekty.** Adapter nie obsługuje `transformed_url`, a `next/image` zna tylko host API i Shopify CDN.
-4. **Fallback `PLN` może ukryć błąd danych.** Jeśli backend nie zwróci `currency`, frontend pokaże walutę przyjętą na ślepo.
-5. **`options_text` jest mostem, nie docelowym modelem opcji.** Dla prostych wariantów wystarczy, ale przy wariantach z wieloma option values lepsze będzie strukturalne pole `options` albo relacje `option_values`.
-6. **`primary_variant` jest ignorowany.** Publiczne API pokazuje tę relację obok `default_variant`; przed koszykiem trzeba zdecydować, czy powinna wejść do include/mapowania.
+1. **Adapter jest pod API v2, backend jest na API v3.** To blokuje uczciwe przejście do koszyka.
+2. **Nagłówek API key jest błędny.** `X-Spree-Storefront-Token` trzeba zastąpić `X-Spree-Api-Key` w osobnym PR kodowym.
+3. **Parametry expand/include różnią się fundamentalnie.** Obecne `include=default_variant,variants,images,option_types` nie odpowiada kontraktowi `sklepik`.
+4. **Obrazy są w innym modelu.** `media` / `primary_media` wymagają nowego reshape'u i ponownej kontroli `next/image`.
+5. **Search wymaga zmiany.** `filter[name]` trzeba zastąpić `q[name_cont]`.
+6. **Sortowanie po `updated_at` jest ryzykiem.** Dopóki backend go nie potwierdzi, nie powinno być traktowane jako bezpieczny sort realnego adaptera.
+7. **Fallback `PLN` nadal może ukrywać błędy danych.** Waluta musi pochodzić z realnego API v3 albo zostać świadomie obsłużona jako decyzja produktowa.
 
 ## Rekomendacje przed koszykiem
 
-Przed rozpoczęciem implementacji koszyka należy:
+Przed rozpoczęciem koszyka należy zrobić osobny PR kodowy dla adaptera produktów v3:
 
-1. Uruchomić lub pobrać realny backend `pawelekbyra/sklepik` w środowisku developerskim.
-2. Wykonać realne requesty:
-
-   ```bash
-   curl -i "$SPREE_API_URL/api/v2/storefront/products?include=default_variant,variants,images,option_types"
-   curl -i "$SPREE_API_URL/api/v2/storefront/products/{realny-slug}?include=default_variant,variants,images,option_types"
-   ```
-
-3. Sprawdzić te same requesty bez `SPREE_PUBLISHABLE_KEY` oraz z aktualnym nagłówkiem adaptera.
-4. Zanotować realny host pierwszego obrazu produktu i porównać go z `next.config.ts`.
-5. Potwierdzić walutę z realnych danych (`currency`) i usunąć lub ograniczyć fallback `PLN`, jeśli ukrywa błędy.
-6. Potwierdzić, czy `variant.id` jest dokładnie wartością wymaganą przez przyszły endpoint line items.
-7. Jeśli okaże się, że backend wymaga zmian konfiguracji API, opisać decyzję także w `sklepik/docs/engine-decisions.md`; nie implementować tej zmiany po stronie frontu bez osobnego zadania.
+1. Zmienić bazową ścieżkę Store API z `/api/v2/storefront` na `/api/v3/store`.
+2. Zastąpić `include` parametrem `expand` zgodnym z realnymi expandami produktów, wariantów i mediów.
+3. Zastąpić `X-Spree-Storefront-Token` nagłówkiem `X-Spree-Api-Key`.
+4. Zastąpić `filter[name]` parametrem `q[name_cont]`.
+5. Zmapować obrazy z `media` / `primary_media` i sprawdzić hosty dla `next/image`.
+6. Potwierdzić format wariantów, cen i walut w odpowiedzi `/api/v3/store/products`.
+7. Ograniczyć albo potwierdzić sortowanie po `updated_at`.
+8. Dopiero po działającym produkcie v3 wrócić do etapu koszyka.

@@ -91,27 +91,33 @@ Ryzyka i ograniczenia:
 
 Warunek zamknięcia: produktowy adapter Spree ma docelowe źródło hostów obrazów, neutralne publiczne typy commerce oraz rekomendacje albo powiązane produkty oparte o Spree.
 
-### 2026-07-05 — Produktowy adapter Spree nie został potwierdzony na realnym backendzie sklepik
+### 2026-07-05 — Minimalny adapter produktów Spree jest oparty o błędny kontrakt API v2
 
 Status: otwarte
 
-Skrót: Walidacja adaptera produktów potwierdziła zgodność z publicznym kontraktem Spree Storefront API, ale nie potwierdziła działania względem realnego repozytorium `pawelekbyra/sklepik`, bo backend nie był dostępny lokalnie, a próba pobrania repozytorium z GitHuba zakończyła się błędem sieciowym `CONNECT tunnel failed, response 403`.
+Skrót: Obecny `lib/spree` został zaimplementowany pod założenia Spree Storefront API v2, ale backendowa walidacja `sklepik#2` ustaliła, że realny backend `pawelekbyra/sklepik` używa API v3 Store dla produktów.
 
 Potwierdzone ograniczenia:
 
-1. Nagłówek `X-Spree-Storefront-Token` dla `SPREE_PUBLISHABLE_KEY` nie został potwierdzony w aktualnej publicznej dokumentacji Spree Storefront API dla produktów.
-2. Fallback waluty `PLN` pozostaje założeniem frontendu, dopóki realny backend nie potwierdzi waluty w odpowiedziach produktów i wariantów.
-3. Host obrazów nie został potwierdzony względem realnego storage/CDN backendu `sklepik`; `next.config.ts` dopuszcza tylko host z `SPREE_API_URL` oraz dotychczasowy Shopify CDN.
-4. Adapter nie obsługuje `transformed_url` obrazów opisanego w aktualnej dokumentacji Spree; wymaga to sprawdzenia na realnych odpowiedziach `sklepik`.
+1. Adapter używa `/api/v2/storefront/products`, a realny backend używa `/api/v3/store/products`.
+2. Adapter używa `include`, a realny backend używa `expand`.
+3. Adapter mapuje obrazy z `images`, a realny backend zwraca obrazy jako `media` / `primary_media`.
+4. Adapter wysyła `X-Spree-Storefront-Token`, a realny backend oczekuje `X-Spree-Api-Key`.
+5. Adapter używa `filter[name]`, a realny backend używa `q[name_cont]`.
+6. Sortowanie po `updated_at` nie jest potwierdzone dla realnego backendu.
+7. Fallback waluty `PLN` pozostaje założeniem frontendu, dopóki API v3 nie potwierdzi waluty w odpowiedziach produktów i wariantów.
+8. Host obrazów nie został potwierdzony względem realnych URL-i `media` / `primary_media`; `next.config.ts` dopuszcza tylko host z `SPREE_API_URL` oraz dotychczasowy Shopify CDN.
 
 Co trzeba zrobić później:
 
-1. Uruchomić realny backend `sklepik` i wykonać requesty listy oraz szczegółów produktu z aktualnym `include`.
-2. Sprawdzić requesty produktowe z nagłówkiem `X-Spree-Storefront-Token` i bez niego.
-3. Potwierdzić realne pola obrazów oraz host obrazów.
-4. Potwierdzić walutę i usunąć albo zawęzić fallback `PLN`, jeśli ukrywa brak danych.
+1. W osobnym PR kodowym przepiąć `lib/spree` na `/api/v3/store/products`.
+2. Zastąpić `include` parametrem `expand`.
+3. Zastąpić `X-Spree-Storefront-Token` nagłówkiem `X-Spree-Api-Key`.
+4. Zastąpić `filter[name]` parametrem `q[name_cont]`.
+5. Przepisać mapowanie obrazów na `media` / `primary_media` i potwierdzić hosty dla `next/image`.
+6. Potwierdzić format wariantów, cen i walut w API v3 oraz ograniczyć albo potwierdzić sort `updated_at`.
 
-Warunek zamknięcia: `docs/spree-backend-validation.md` zostaje uzupełnione wynikami z realnego backendu `sklepik`, a adapter produktów działa na realnych danych bez niepotwierdzonych założeń.
+Warunek zamknięcia: produktowy adapter `lib/spree` działa z realnym kontraktem API v3 backendu `sklepik` dla listy produktów i szczegółów produktu.
 
 ### 2026-07-05 — Workflow agentów wymaga dyscypliny dokumentacyjnej
 

@@ -71,7 +71,7 @@ Minimalny klient powinien umieć:
 
 ## Etap 3 — produkty
 
-Status: częściowo wykonany — wymaga korekt. `getProducts()` i `getProduct(handle)` pobierają produkty ze Spree Store API i mapują odpowiedzi JSON:API przez `lib/spree/reshape.ts` do publicznego kształtu produktu używanego przez obecne komponenty Vercel Commerce. Walidacja w `docs/spree-backend-validation.md` potwierdziła zgodność z publicznym Spree Storefront API, ale nie potwierdziła w pełni realnego backendu `pawelekbyra/sklepik`, bo repozytorium backendu nie było dostępne w środowisku walidacji.
+Status: częściowo wykonany — wymaga korekt. `getProducts()` i `getProduct(handle)` nadal są zaimplementowane pod założenia Spree Storefront API v2, ale walidacja backendowa `sklepik#2` ustaliła, że realny backend `pawelekbyra/sklepik` używa API v3 Store: `/api/v3/store/products`, `expand`, `media` / `primary_media`, `X-Spree-Api-Key` i `q[name_cont]`. Ten etap nie jest zweryfikowany jako działający z realnym backendem.
 
 Pierwsze funkcje:
 
@@ -187,17 +187,16 @@ Przerywamy migrację na Vercel Commerce, jeśli:
 
 ## Następny konkretny krok
 
-Dokończyć walidację minimalnego adaptera produktów Spree na uruchomionym realnym backendzie `pawelekbyra/sklepik`.
+Skorygować minimalny adapter produktów Spree do realnego kontraktu backendu `pawelekbyra/sklepik` API v3 w osobnym PR kodowym.
 
-Dotychczasowa walidacja dokumentacyjna jest opisana w `docs/spree-backend-validation.md`. Do potwierdzenia na realnym backendzie zostają:
+Walidacja dokumentacyjna jest opisana w `docs/spree-backend-validation.md`. Następny PR powinien bez ruszania koszyka poprawić:
 
-- endpoint listy produktów,
-- endpoint szczegółów produktu,
-- nagłówki wymagane przez Store API,
-- format produktów,
-- format wariantów,
-- format cen,
-- format obrazów,
-- host obrazów i konfiguracja `next/image`.
+- endpointy z `/api/v2/storefront/products` na `/api/v3/store/products`,
+- `include` na `expand`,
+- nagłówek `X-Spree-Storefront-Token` na `X-Spree-Api-Key`,
+- search z `filter[name]` na `q[name_cont]`,
+- obrazy z `images` na `media` / `primary_media`,
+- mapowanie produktów, wariantów, cen i walut na realny format API v3,
+- host obrazów i konfigurację `next/image`.
 
 Nie zaczynać koszyka, dopóki produktowy adapter nie zostanie potwierdzony z realnym backendem.
