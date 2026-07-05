@@ -64,7 +64,45 @@ api.kakaowysklepik.pl
 → Store API / backend Spree dla frontendu
 ```
 
-Na etapie prototypu backend może być dostępny pod techniczną domeną z `/admin` i `/api/v2/storefront`, ale frontend nadal nie staje się panelem administracyjnym.
+Na etapie prototypu backend może być dostępny pod techniczną domeną z `/admin` i Store API, ale frontend nadal nie staje się panelem administracyjnym.
+
+## Do rozważenia: Cloudflare w deployment
+
+Cloudflare jest kandydatem do rozważenia jako warstwa infrastrukturalna wokół deploymentu, ale nie jako automatyczna odpowiedź na hosting całego systemu.
+
+Do rozkminienia przed produkcyjnym deploymentem:
+
+```text
+Cloudflare DNS
+→ zarządzanie domeną kakaowysklepik.pl
+
+Cloudflare CDN / WAF
+→ cache, SSL, ochrona i bezpieczeństwo ruchu
+
+Cloudflare Access
+→ opcjonalna dodatkowa ochrona admin.kakaowysklepik.pl
+
+Cloudflare R2
+→ opcjonalny storage zdjęć i mediów, jeśli dobrze zepnie się ze Spree / Active Storage
+
+Cloudflare Pages
+→ opcjonalna alternatywa dla frontendu, do porównania z Vercel
+```
+
+Na obecnym etapie nie przesądzamy tej decyzji. Domyślny kierunek pozostaje:
+
+```text
+KakaowySklepikFront
+→ Vercel albo inny hosting zoptymalizowany pod Next.js storefront
+
+sklepik
+→ osobny backend hosting dla Spree, admina, Store API, bazy, jobów i storage
+
+Cloudflare
+→ potencjalnie DNS / CDN / security / Access / R2
+```
+
+Nie należy deployować backendu `sklepik` na Cloudflare tylko dlatego, że Cloudflare jest w systemie. Backend Spree wymaga osobnej decyzji hostingowej, uwzględniającej Rails, Postgres, joby, storage, webhooki płatności, admina i stabilność Store API.
 
 ## Warstwa do zastąpienia
 
