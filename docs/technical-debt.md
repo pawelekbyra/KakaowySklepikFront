@@ -91,6 +91,28 @@ Ryzyka i ograniczenia:
 
 Warunek zamknięcia: produktowy adapter Spree ma docelowe źródło hostów obrazów, neutralne publiczne typy commerce oraz rekomendacje albo powiązane produkty oparte o Spree.
 
+### 2026-07-05 — Produktowy adapter Spree nie został potwierdzony na realnym backendzie sklepik
+
+Status: otwarte
+
+Skrót: Walidacja adaptera produktów potwierdziła zgodność z publicznym kontraktem Spree Storefront API, ale nie potwierdziła działania względem realnego repozytorium `pawelekbyra/sklepik`, bo backend nie był dostępny lokalnie, a próba pobrania repozytorium z GitHuba zakończyła się błędem sieciowym `CONNECT tunnel failed, response 403`.
+
+Potwierdzone ograniczenia:
+
+1. Nagłówek `X-Spree-Storefront-Token` dla `SPREE_PUBLISHABLE_KEY` nie został potwierdzony w aktualnej publicznej dokumentacji Spree Storefront API dla produktów.
+2. Fallback waluty `PLN` pozostaje założeniem frontendu, dopóki realny backend nie potwierdzi waluty w odpowiedziach produktów i wariantów.
+3. Host obrazów nie został potwierdzony względem realnego storage/CDN backendu `sklepik`; `next.config.ts` dopuszcza tylko host z `SPREE_API_URL` oraz dotychczasowy Shopify CDN.
+4. Adapter nie obsługuje `transformed_url` obrazów opisanego w aktualnej dokumentacji Spree; wymaga to sprawdzenia na realnych odpowiedziach `sklepik`.
+
+Co trzeba zrobić później:
+
+1. Uruchomić realny backend `sklepik` i wykonać requesty listy oraz szczegółów produktu z aktualnym `include`.
+2. Sprawdzić requesty produktowe z nagłówkiem `X-Spree-Storefront-Token` i bez niego.
+3. Potwierdzić realne pola obrazów oraz host obrazów.
+4. Potwierdzić walutę i usunąć albo zawęzić fallback `PLN`, jeśli ukrywa brak danych.
+
+Warunek zamknięcia: `docs/spree-backend-validation.md` zostaje uzupełnione wynikami z realnego backendu `sklepik`, a adapter produktów działa na realnych danych bez niepotwierdzonych założeń.
+
 ### 2026-07-05 — Workflow agentów wymaga dyscypliny dokumentacyjnej
 
 Status: w toku

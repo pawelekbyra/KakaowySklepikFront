@@ -71,7 +71,7 @@ Minimalny klient powinien umieć:
 
 ## Etap 3 — produkty
 
-Status: częściowo wykonany. `getProducts()` i `getProduct(handle)` pobierają produkty ze Spree Store API i mapują odpowiedzi JSON:API przez `lib/spree/reshape.ts` do publicznego kształtu produktu używanego przez obecne komponenty Vercel Commerce.
+Status: częściowo wykonany — wymaga korekt. `getProducts()` i `getProduct(handle)` pobierają produkty ze Spree Store API i mapują odpowiedzi JSON:API przez `lib/spree/reshape.ts` do publicznego kształtu produktu używanego przez obecne komponenty Vercel Commerce. Walidacja w `docs/spree-backend-validation.md` potwierdziła zgodność z publicznym Spree Storefront API, ale nie potwierdziła w pełni realnego backendu `pawelekbyra/sklepik`, bo repozytorium backendu nie było dostępne w środowisku walidacji.
 
 Pierwsze funkcje:
 
@@ -187,9 +187,9 @@ Przerywamy migrację na Vercel Commerce, jeśli:
 
 ## Następny konkretny krok
 
-Zweryfikować minimalny adapter produktów Spree względem realnego backendu `pawelekbyra/sklepik`.
+Dokończyć walidację minimalnego adaptera produktów Spree na uruchomionym realnym backendzie `pawelekbyra/sklepik`.
 
-Zakres walidacji:
+Dotychczasowa walidacja dokumentacyjna jest opisana w `docs/spree-backend-validation.md`. Do potwierdzenia na realnym backendzie zostają:
 
 - endpoint listy produktów,
 - endpoint szczegółów produktu,
