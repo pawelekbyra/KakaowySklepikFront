@@ -45,6 +45,27 @@ pawelekbyra/sklepik
 
 Produkty, warianty, ceny, koszyk, checkout i zamówienia mają pochodzić ze Spree API.
 
+## Granica admin / API / storefront
+
+`KakaowySklepikFront` jest storefrontem dla klientów, a nie panelem administracyjnym.
+
+Logowanie administratora, zarządzanie produktami, wariantami, cenami, zdjęciami, dostępnością, zamówieniami, płatnościami, wysyłką i podatkami należą do backendu `pawelekbyra/sklepik` i Spree Admin.
+
+Docelowy podział systemu:
+
+```text
+www.kakaowysklepik.pl
+→ storefront dla klientów
+
+admin.kakaowysklepik.pl
+→ panel administracyjny Spree
+
+api.kakaowysklepik.pl
+→ Store API / backend Spree dla frontendu
+```
+
+Na etapie prototypu backend może być dostępny pod techniczną domeną z `/admin` i `/api/v2/storefront`, ale frontend nadal nie staje się panelem administracyjnym.
+
 ## Warstwa do zastąpienia
 
 Obecny kod Vercel Commerce używa Shopify jako providera.
