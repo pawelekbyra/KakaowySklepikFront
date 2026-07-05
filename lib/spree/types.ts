@@ -85,6 +85,7 @@ export type SpreeProductAttributes = {
   id?: string | number;
   name?: string;
   description?: string | null;
+  description_html?: string | null;
   slug?: string;
   permalink?: string;
   display_price?: string;

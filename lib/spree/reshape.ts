@@ -191,8 +191,9 @@ export function reshapeProduct(
 
   const attributes = attrs(product);
   const title = attributes.name || String(product.id);
-  const descriptionHtml = attributes.description || "";
-  const description = stripHtml(descriptionHtml);
+  const descriptionHtml =
+    attributes.description_html || attributes.description || "";
+  const description = attributes.description || stripHtml(descriptionHtml);
   const handle =
     attributes.slug ||
     attributes.permalink ||
@@ -237,36 +238,47 @@ export function reshapeProduct(
   const currencyCode =
     productVariants[0]?.price.currencyCode || DEFAULT_CURRENCY;
 
-  const media = [
+  const primaryMedia = [
     ...normalizeArray(attributes.primary_media),
-    ...normalizeArray(attributes.media),
     ...getRelationshipIds(product, "primary_media").map((relationship) =>
       findIncluded<SpreeMediaAttributes>(included, relationship),
     ),
+  ].filter((image): image is SpreeResource<SpreeMediaAttributes> =>
+    Boolean(image),
+  );
+  const media = [
+    ...primaryMedia,
+    ...normalizeArray(attributes.media),
     ...getRelationshipIds(product, "media").map((relationship) =>
       findIncluded<SpreeMediaAttributes>(included, relationship),
     ),
-  ]
-    .filter((image): image is SpreeResource<SpreeMediaAttributes> =>
-      Boolean(image),
-    )
-    .filter(
-      (image, index, all) =>
-        all.findIndex(
-          (candidate) => String(candidate.id) === String(image.id),
-        ) === index,
-    )
+  ].filter((image): image is SpreeResource<SpreeMediaAttributes> =>
+    Boolean(image),
+  );
+  const uniqueMedia = media.filter(
+    (image, index, all) =>
+      all.findIndex(
+        (candidate) => String(candidate.id) === String(image.id),
+      ) === index,
+  );
+  const featuredMedia =
+    primaryMedia[0] ||
+    uniqueMedia.find((image) => Boolean(attrs(image).thumbnail_url)) ||
+    uniqueMedia[0];
+  const images = uniqueMedia
     .sort(
       (a, b) =>
         (Number(attrs(a).position) || 0) - (Number(attrs(b).position) || 0),
-    );
-  const images = media.map((image) => reshapeImage(image, title));
-  const featuredImage = images[0] || {
-    url: "",
-    altText: title,
-    width: DEFAULT_IMAGE_SIZE,
-    height: DEFAULT_IMAGE_SIZE,
-  };
+    )
+    .map((image) => reshapeImage(image, title));
+  const featuredImage = featuredMedia
+    ? reshapeImage(featuredMedia, title)
+    : {
+        url: "",
+        altText: title,
+        width: DEFAULT_IMAGE_SIZE,
+        height: DEFAULT_IMAGE_SIZE,
+      };
 
   return {
     id: String(attributes.id || product.id),
