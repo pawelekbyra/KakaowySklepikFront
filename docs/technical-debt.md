@@ -91,6 +91,34 @@ Ryzyka i ograniczenia:
 
 Warunek zamknięcia: produktowy adapter Spree ma docelowe źródło hostów obrazów, neutralne publiczne typy commerce oraz rekomendacje albo powiązane produkty oparte o Spree.
 
+### 2026-07-05 — Minimalny adapter produktów Spree jest oparty o błędny kontrakt API v2
+
+Status: otwarte
+
+Skrót: Obecny `lib/spree` został zaimplementowany pod założenia Spree Storefront API v2, ale backendowa walidacja `sklepik#2` ustaliła, że realny backend `pawelekbyra/sklepik` używa API v3 Store dla produktów.
+
+Potwierdzone ograniczenia:
+
+1. Adapter używa `/api/v2/storefront/products`, a realny backend używa `/api/v3/store/products`.
+2. Adapter używa `include`, a realny backend używa `expand`.
+3. Adapter mapuje obrazy z `images`, a realny backend zwraca obrazy jako `media` / `primary_media`.
+4. Adapter wysyła `X-Spree-Storefront-Token`, a realny backend oczekuje `X-Spree-Api-Key`.
+5. Adapter używa `filter[name]`, a realny backend używa `q[name_cont]`.
+6. Sortowanie po `updated_at` nie jest potwierdzone dla realnego backendu.
+7. Fallback waluty `PLN` pozostaje założeniem frontendu, dopóki API v3 nie potwierdzi waluty w odpowiedziach produktów i wariantów.
+8. Host obrazów nie został potwierdzony względem realnych URL-i `media` / `primary_media`; `next.config.ts` dopuszcza tylko host z `SPREE_API_URL` oraz dotychczasowy Shopify CDN.
+
+Co trzeba zrobić później:
+
+1. W osobnym PR kodowym przepiąć `lib/spree` na `/api/v3/store/products`.
+2. Zastąpić `include` parametrem `expand`.
+3. Zastąpić `X-Spree-Storefront-Token` nagłówkiem `X-Spree-Api-Key`.
+4. Zastąpić `filter[name]` parametrem `q[name_cont]`.
+5. Przepisać mapowanie obrazów na `media` / `primary_media` i potwierdzić hosty dla `next/image`.
+6. Potwierdzić format wariantów, cen i walut w API v3 oraz ograniczyć albo potwierdzić sort `updated_at`.
+
+Warunek zamknięcia: produktowy adapter `lib/spree` działa z realnym kontraktem API v3 backendu `sklepik` dla listy produktów i szczegółów produktu.
+
 ### 2026-07-05 — Workflow agentów wymaga dyscypliny dokumentacyjnej
 
 Status: w toku
