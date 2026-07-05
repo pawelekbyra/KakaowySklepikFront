@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: kakaowy-sklepik-front
+    runtime: node
+    plan: starter
+    region: frankfurt
+    buildCommand: corepack enable && corepack prepare pnpm@11.1.1 --activate && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.0
+      - key: COMPANY_NAME
+        value: Kakaowy Sklepik
+      - key: SITE_NAME
+        value: Kakaowy Sklepik
+      - key: APP_URL
+        sync: false
+      - key: SPREE_API_URL
+        sync: false
+      - key: SPREE_PUBLISHABLE_KEY
+        sync: false
+      # The template still uses Shopify for cart, menu, CMS pages, sitemap and revalidation.
+      # Keep these set until those paths are migrated to Spree.
+      - key: SHOPIFY_STORE_DOMAIN
+        sync: false
+      - key: SHOPIFY_STOREFRONT_ACCESS_TOKEN
+        sync: false
+      - key: SHOPIFY_REVALIDATION_SECRET
+        generateValue: true
