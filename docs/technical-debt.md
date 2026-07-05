@@ -76,3 +76,17 @@ Co trzeba zrobić później:
 4. Zaimplementować osobny etap koszyka i checkoutu Spree.
 
 Warunek zamknięcia: pełny flow produktów, koszyka i checkoutu testowego działa na Spree API bez zależności od Shopify.
+
+### 2026-07-05 — Mosty kompatybilnościowe adaptera Spree produktów
+
+Status: otwarte
+
+Skrót: Minimalne podpięcie produktów ze Spree nadal ma kilka mostów kompatybilnościowych potrzebnych do utrzymania UI Vercel Commerce bez szerszego refaktoru.
+
+Ryzyka i ograniczenia:
+
+1. `next.config.ts` dopuszcza host obrazów wyliczony z `SPREE_API_URL`; jeśli obrazy Spree będą serwowane z osobnego CDN/storage, trzeba dodać docelową zmienną lub wzorzec hosta obrazów.
+2. `lib/spree/types.ts` tymczasowo re-exportuje publiczne typy z `lib/shopify/types`. To most kompatybilnościowy na czas prototypu; docelowo publiczne typy commerce powinny trafić do neutralnego miejsca, np. `lib/commerce/types`.
+3. Related products na stronie produktu używają tymczasowego fallbacku: pobierają listę produktów ze Spree, odfiltrowują aktualny produkt i ograniczają wynik do 10 pozycji. Docelowo powinny korzystać z rekomendacji, taxonów albo podobnego mechanizmu po stronie Spree.
+
+Warunek zamknięcia: produktowy adapter Spree ma docelowe źródło hostów obrazów, neutralne publiczne typy commerce oraz rekomendacje albo powiązane produkty oparte o Spree.

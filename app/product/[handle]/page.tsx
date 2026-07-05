@@ -111,9 +111,9 @@ export default async function ProductPage(props: {
 }
 
 async function RelatedProducts({ id }: { id: string }) {
-  const relatedProducts = (await getProducts({})).filter(
-    (product) => product.id !== id,
-  );
+  const relatedProducts = (await getProducts({}))
+    .filter((product) => product.id !== id)
+    .slice(0, 10);
 
   if (!relatedProducts.length) return null;
 
